@@ -1,6 +1,6 @@
 //go:build compare
 
-// Package compare  tests theory/jsonpath against the [json-path-comparison]
+// Package compare tests theory/jsonpath against the [json-path-comparison]
 // project's regression suite. It requires the file regression_suite.yaml to
 // be in this directory. The test only runs with the "compare" tag. Use make
 // for the easiest way to download regression_suite.yaml and run the tests:

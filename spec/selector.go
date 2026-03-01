@@ -294,7 +294,7 @@ func Slice(args ...any) SliceSelector {
 	s := SliceSelector{0, math.MaxInt, 1}
 	switch len(args) - 1 {
 	case stepArg:
-		//nolint:gosec // disable G602 https://github.com/securego/gosec/issues/1250
+
 		switch step := args[stepArg].(type) {
 		case int:
 			s.step = step
