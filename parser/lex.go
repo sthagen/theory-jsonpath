@@ -213,7 +213,7 @@ func (lex *lexer) skipBlankSpace() rune {
 
 // isBlankSpace returns true if r is blank space.
 func isBlankSpace(r rune) bool {
-	return blanks&(1<<uint64(r)) != 0
+	return r >= 0 && blanks&(1<<r) != 0
 }
 
 // peekPastBlankSpace returns the next non-blank space rune from the current

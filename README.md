@@ -35,7 +35,7 @@ A brief overview of [RFC 9535 JSONPath] syntax:
 
 ## Dependencies
 
-This package has no runtime dependencies, only testing dependencies.
+This package has only test dependencies.
 
 ## Copyright
 

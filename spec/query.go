@@ -52,7 +52,7 @@ func (q *PathQuery) Select(current, root any) []any {
 		res[0] = root
 	}
 	for _, seg := range q.segments {
-		segRes := []any{}
+		segRes := make([]any, 0, len(res))
 		for _, v := range res {
 			segRes = append(segRes, seg.Select(v, root)...)
 		}
@@ -73,7 +73,7 @@ func (q *PathQuery) SelectLocated(current, root any, parent NormalizedPath) []*L
 		res[0] = newLocatedNode(parent, current)
 	}
 	for _, seg := range q.segments {
-		segRes := []*LocatedNode{}
+		segRes := make([]*LocatedNode, 0, len(res))
 		for _, v := range res {
 			segRes = append(segRes, seg.SelectLocated(v.Node, root, v.Path)...)
 		}

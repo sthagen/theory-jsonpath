@@ -190,8 +190,7 @@ func ExampleParser() {
 	parser := jsonpath.NewParser()
 
 	// Parse a list of paths.
-	paths := []*jsonpath.Path{}
-	for _, path := range []string{
+	strings := []string{
 		"$.store.book[*].author",
 		"$..author",
 		"$.store..color",
@@ -199,7 +198,9 @@ func ExampleParser() {
 		"$..book[2].publisher",
 		"$..book[?@.isbn].title",
 		"$..book[?@.price<10].title",
-	} {
+	}
+	paths := make([]*jsonpath.Path, 0, len(strings))
+	for _, path := range strings {
 		p, err := parser.Parse(path)
 		if err != nil {
 			log.Fatal(err)

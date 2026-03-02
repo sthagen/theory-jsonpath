@@ -540,9 +540,9 @@ func (fe *FuncExpr) String() string {
 // [FuncExprArg] in fe (as passed to [Function]) and passing them to fe's
 // [FuncExtension].
 func (fe *FuncExpr) evaluate(current, root any) PathValue {
-	res := []PathValue{}
-	for _, a := range fe.args {
-		res = append(res, a.evaluate(current, root))
+	res := make([]PathValue, len(fe.args))
+	for i, a := range fe.args {
+		res[i] = a.evaluate(current, root)
 	}
 
 	return fe.fn.Evaluate(res)
