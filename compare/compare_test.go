@@ -11,6 +11,7 @@
 package compare
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -60,6 +61,10 @@ func TestConsensus(t *testing.T) {
 		"dot_notation_with_dash":                  "RFC 9535 § 2.5.1.1: dash disallowed in shorthand hames",
 	}
 
+	reMarshal := map[string]string{
+		"filter_expression_with_equals_number_on_various_representations": "cburgmer/json-path-comparison#167",
+	}
+
 	for _, q := range queries(t) {
 		t.Run(q.ID, func(t *testing.T) {
 			t.Parallel()
@@ -78,6 +83,15 @@ func TestConsensus(t *testing.T) {
 			// Skip tests that violate RFC 9535.
 			if r, ok := skip[q.ID]; ok {
 				t.Skip(r)
+			}
+
+			if _, ok := reMarshal[q.ID]; ok {
+				data, err := json.Marshal(q.Consensus)
+				require.NoError(t, err)
+				require.NoError(t, json.Unmarshal(data, &q.Consensus))
+				data, err = json.Marshal(q.Document)
+				require.NoError(t, err)
+				require.NoError(t, json.Unmarshal(data, &q.Document))
 			}
 
 			path, err := jsonpath.Parse(q.Selector)

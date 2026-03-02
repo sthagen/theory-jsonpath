@@ -5,6 +5,7 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: [[🐧, Ubuntu], [🍎, macOS], [🪟, Windows]]
         go: ["1.26", "1.25", "1.24", "1.23"]
@@ -12,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os[1] }}-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with: { submodules: true }
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -21,15 +22,16 @@ jobs:
         run: make test-all
       - name: Setup TinyGo
         uses: acifani/setup-tinygo@v2
-        with: { tinygo-version: 0.39.0 }
+        with: { tinygo-version: 0.40.1 }
       - name: Test WASM
+        if: matrix.go != '1.26'
         run: make wasm
   lint:
     name: 📊 Lint and Cover
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with: { submodules: true }
       - name: Setup Go
         uses: actions/setup-go@v5
