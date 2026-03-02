@@ -7,10 +7,26 @@ All notable changes to this project will be documented in this file. It uses the
   [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
     "Semantic Versioning 2.0.0"
 
-## [v0.10.3] — Unreleased
+## [v0.11.0] — 2026-03-02
 
+### ⚡ Improvements
 
-  [v0.10.3]: https://github.com/theory/jsonpath/compare/v0.10.2...v0.10.3
+*   Added some explicit slice size declarations to improve performance.
+
+### ⬆️ Dependency Updates
+
+*   Upgraded to `golangci-lint` v2.10.1
+*   Added test coverage for Go v1.25 and v1.26
+*   Pulled the latest `jsonpath-compliance-test-suite` and
+    `regression_suite.yaml`
+
+### 📔 Notes
+
+*   Removed unused constant from `parser/lex.go`
+*   Removed an unnecessary integer conversions reported as overflow risks by
+    golangci-lint.
+
+  [v0.10.3]: https://github.com/theory/jsonpath/compare/v0.10.2...v0.11.0
 
 ## [v0.10.2] — 2025-10-14
 
