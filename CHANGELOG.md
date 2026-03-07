@@ -7,6 +7,15 @@ All notable changes to this project will be documented in this file. It uses the
   [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
     "Semantic Versioning 2.0.0"
 
+## [v0.11.1] — Unreleased
+
+### ⬆️ Dependency Updates
+
+*   Upgraded to `golangci-lint` v2.11.1 and made suggested slice allocation
+    optimization
+
+  [v0.11.1]: https://github.com/theory/jsonpath/compare/v0.11.0...v0.11.1
+
 ## [v0.11.0] — 2026-03-02
 
 ### ⚡ Improvements

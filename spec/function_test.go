@@ -475,13 +475,13 @@ func newNodesFunc() *FuncExtension {
 			return nil
 		},
 		func(args []PathValue) PathValue {
-			ret := NodesType{}
-			for _, x := range args {
+			ret := make(NodesType, len(args))
+			for i, x := range args {
 				v, ok := x.(*ValueType)
 				if !ok {
 					panic(fmt.Sprintf("unexpected argument of type %T", x))
 				}
-				ret = append(ret, v.any)
+				ret[i] = v.any
 			}
 			return ret
 		},
