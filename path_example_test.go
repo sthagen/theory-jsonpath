@@ -115,7 +115,7 @@ func ExampleLocatedNodeList() {
 
 func ExampleLocatedNodeList_Deduplicate() {
 	// Load some JSON.
-	pallet := map[string]any{"colors": []any{"red", "blue"}}
+	pallet := map[string]any{"colors": []string{"red", "blue"}}
 
 	// Parse a JSONPath and select from the input.
 	p := jsonpath.MustParse("$.colors[0, 1, 1, 0]")
@@ -133,7 +133,7 @@ func ExampleLocatedNodeList_Deduplicate() {
 
 func ExampleLocatedNodeList_Sort() {
 	// Load some JSON.
-	pallet := map[string]any{"colors": []any{"red", "blue", "green"}}
+	pallet := map[string]any{"colors": []string{"red", "blue", "green"}}
 
 	// Parse a JSONPath and select from the input.
 	p := jsonpath.MustParse("$.colors[2, 0, 1]")
@@ -166,7 +166,7 @@ func ExampleLocatedNodeList_Sort() {
 
 func ExampleLocatedNodeList_Clone() {
 	// Load some JSON.
-	items := []any{1, 2, 3, 4, 5}
+	items := []int{1, 2, 3, 4, 5}
 
 	// Parse a JSONPath and select from the input.
 	p := jsonpath.MustParse("$[2, 0, 1, 0, 1]")
@@ -259,9 +259,9 @@ func ExampleWithRegistry() {
 
 	// Do any of these arrays start with 6?
 	input := []any{
-		[]any{1, 2, 3, 4, 5},
-		[]any{6, 7, 8, 9},
-		[]any{4, 8, 12},
+		[]int{1, 2, 3, 4, 5},
+		[]int{6, 7, 8, 9},
+		[]int{4, 8, 12},
 	}
 	nodes := path.Select(input)
 	fmt.Printf("%v\n", nodes)

@@ -288,6 +288,34 @@ func TestQueryObject(t *testing.T) {
 			exp:     []any{},
 			loc:     []*LocatedNode{},
 		},
+		{
+			test:    "string_map",
+			resType: FuncValue,
+			input:   map[string]string{"x": "hi", "y": "y"},
+			segs:    []*Segment{Child(Name("x"))},
+			exp:     []any{"hi"},
+			loc: []*LocatedNode{
+				{Path: Normalized(Name("x")), Node: "hi"},
+			},
+		},
+		{
+			test:    "int_map",
+			resType: FuncValue,
+			input:   map[string]int{"x": 42, "y": 99},
+			segs:    []*Segment{Child(Name("x"))},
+			exp:     []any{42},
+			loc: []*LocatedNode{
+				{Path: Normalized(Name("x")), Node: 42},
+			},
+		},
+		{
+			test:    "int_keyed_map",
+			resType: FuncValue,
+			input:   map[int]string{42: "hi", 99: "y"},
+			segs:    []*Segment{Child(Name("42"))},
+			exp:     []any{},
+			loc:     []*LocatedNode{},
+		},
 	} {
 		t.Run(tc.test, func(t *testing.T) {
 			t.Parallel()
@@ -630,6 +658,22 @@ func TestQueryArray(t *testing.T) {
 			loc: []*LocatedNode{
 				{Path: Normalized(Index(0), Name("x"), Index(1)), Node: 2},
 			},
+		},
+		{
+			test:    "string_slice_index",
+			resType: FuncValue,
+			segs:    []*Segment{Child(Index(0))},
+			input:   []string{"x", "y"},
+			exp:     []any{"x"},
+			loc:     []*LocatedNode{{Path: Normalized(Index(0)), Node: "x"}},
+		},
+		{
+			test:    "int_slice_index",
+			resType: FuncValue,
+			segs:    []*Segment{Child(Index(1))},
+			input:   []int{0, 42},
+			exp:     []any{42},
+			loc:     []*LocatedNode{{Path: Normalized(Index(1)), Node: 42}},
 		},
 	} {
 		t.Run(tc.test, func(t *testing.T) {
@@ -1099,6 +1143,26 @@ func TestQuerySlice(t *testing.T) {
 				{Path: Normalized(Index(1), Index(1)), Node: "on"},
 				{Path: Normalized(Index(0), Index(2)), Node: true},
 				{Path: Normalized(Index(0), Index(1)), Node: 42},
+			},
+		},
+		{
+			test:  "string_slice",
+			segs:  []*Segment{Child(Slice())},
+			input: []string{"x", "y"},
+			exp:   []any{"x", "y"},
+			loc: []*LocatedNode{
+				{Path: Normalized(Index(0)), Node: "x"},
+				{Path: Normalized(Index(1)), Node: "y"},
+			},
+		},
+		{
+			test:  "int_slice",
+			segs:  []*Segment{Child(Slice())},
+			input: []int{42, 99},
+			exp:   []any{42, 99},
+			loc: []*LocatedNode{
+				{Path: Normalized(Index(0)), Node: 42},
+				{Path: Normalized(Index(1)), Node: 99},
 			},
 		},
 	} {

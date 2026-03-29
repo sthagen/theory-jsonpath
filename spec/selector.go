@@ -2,7 +2,10 @@ package spec
 
 import (
 	"fmt"
+	"maps"
 	"math"
+	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -56,25 +59,44 @@ func (n Name) writeTo(buf *strings.Builder) {
 }
 
 // Select selects n from input and returns it as a single value in a slice.
-// Returns an empty slice if input is not a map[string]any or if it does not
+// Returns an empty slice if input is not a string-keyed map or if it does not
 // contain n. Defined by the [Selector] interface.
 func (n Name) Select(input, _ any) []any {
 	if obj, ok := input.(map[string]any); ok {
 		if val, ok := obj[string(n)]; ok {
 			return []any{val}
 		}
+		return make([]any, 0)
 	}
+
+	// Select from any map[string]*.
+	obj := reflect.ValueOf(input)
+	if obj.Kind() == reflect.Map && obj.Type().Key().Kind() == reflect.String {
+		if v := obj.MapIndex(reflect.ValueOf(string(n))); v.Kind() != reflect.Invalid {
+			return []any{v.Interface()}
+		}
+	}
+
 	return make([]any, 0)
 }
 
 // SelectLocated selects n from input and returns it with its normalized path
 // as a single [LocatedNode] in a slice. Returns an empty slice if input is
-// not a map[string]any or if it does not contain n. Defined by the [Selector]
-// interface.
+// not a string-keyed map or if it does not contain n. Defined by the
+// [Selector] interface.
 func (n Name) SelectLocated(input, _ any, parent NormalizedPath) []*LocatedNode {
 	if obj, ok := input.(map[string]any); ok {
 		if val, ok := obj[string(n)]; ok {
 			return []*LocatedNode{newLocatedNode(append(parent, n), val)}
+		}
+		return make([]*LocatedNode, 0)
+	}
+
+	// Select from any map[string]*.
+	obj := reflect.ValueOf(input)
+	if obj.Kind() == reflect.Map && obj.Type().Key().Kind() == reflect.String {
+		if v := obj.MapIndex(reflect.ValueOf(string(n))); v.Kind() != reflect.Invalid {
+			return []*LocatedNode{newLocatedNode(append(parent, n), v.Interface())}
 		}
 	}
 	return make([]*LocatedNode, 0)
@@ -149,42 +171,84 @@ func (WildcardSelector) String() string { return "*" }
 func (WildcardSelector) isSingular() bool { return false }
 
 // Select selects the values from input and returns them in a slice. Returns
-// an empty slice if input is not []any map[string]any. Defined by the
+// an empty slice if input is not a slice or string-keyed map. Defined by the
 // [Selector] interface.
 func (WildcardSelector) Select(input, _ any) []any {
 	switch val := input.(type) {
 	case []any:
 		return val
 	case map[string]any:
-		vals := make([]any, 0, len(val))
-		for _, v := range val {
-			vals = append(vals, v)
+		return slices.Collect(maps.Values(val))
+	default:
+		// Look for other slice and map types.
+		value := reflect.ValueOf(val)
+		switch value.Kind() {
+		case reflect.Slice:
+			// Copy the slice values.
+			ret := make([]any, value.Len())
+			for i := range value.Len() {
+				ret[i] = value.Index(i).Interface()
+			}
+			return ret
+		case reflect.Map:
+			// Copy from any map[string]*.
+			if value.Type().Key().Kind() == reflect.String {
+				ret := make([]any, value.Len())
+				for i, k := range value.MapKeys() {
+					ret[i] = value.MapIndex(k).Interface()
+				}
+				return ret
+			}
+			return make([]any, 0)
+		default:
+			return make([]any, 0)
 		}
-		return vals
 	}
-	return make([]any, 0)
 }
 
 // SelectLocated selects the values from input and returns them with their
-// normalized paths in a slice of [LocatedNode] values. Returns an empty
-// slice if input is not []any map[string]any. Defined by the [Selector]
+// normalized paths in a slice of [LocatedNode] values. Returns an empty slice
+// if input is not a slice or string-keyed map. Defined by the [Selector]
 // interface.
 func (WildcardSelector) SelectLocated(input, _ any, parent NormalizedPath) []*LocatedNode {
 	switch val := input.(type) {
 	case []any:
-		vals := make([]*LocatedNode, len(val))
+		ret := make([]*LocatedNode, len(val))
 		for i, v := range val {
-			vals[i] = newLocatedNode(append(parent, Index(i)), v)
+			ret[i] = newLocatedNode(append(parent, Index(i)), v)
 		}
-		return vals
+		return ret
 	case map[string]any:
-		vals := make([]*LocatedNode, 0, len(val))
+		ret := make([]*LocatedNode, 0, len(val))
 		for k, v := range val {
-			vals = append(vals, newLocatedNode(append(parent, Name(k)), v))
+			ret = append(ret, newLocatedNode(append(parent, Name(k)), v))
 		}
-		return vals
+		return slices.Clip(ret)
+	default:
+		// Look for other slice and map types.
+		value := reflect.ValueOf(val)
+		switch value.Kind() {
+		case reflect.Slice:
+			// Copy the slice values.
+			ret := make([]*LocatedNode, value.Len())
+			for i := range value.Len() {
+				ret[i] = newLocatedNode(append(parent, Index(i)), value.Index(i).Interface())
+			}
+			return ret
+		case reflect.Map:
+			// Copy from any map[string]*.
+			if value.Type().Key().Kind() == reflect.String {
+				ret := make([]*LocatedNode, value.Len())
+				for i, k := range value.MapKeys() {
+					ret[i] = newLocatedNode(append(parent, Name(k.String())), value.MapIndex(k).Interface())
+				}
+				return ret
+			}
+			return make([]*LocatedNode, 0)
+		default:
+			return make([]*LocatedNode, 0)
+		}
 	}
-	return make([]*LocatedNode, 0)
 }
 
 // Index is an array index selector, e.g., [3], as defined by [RFC
@@ -223,7 +287,22 @@ func (i Index) Select(input, _ any) []any {
 		} else if idx < len(val) {
 			return []any{val[idx]}
 		}
+		return make([]any, 0)
 	}
+
+	// Select from any kind of slice.
+	val := reflect.ValueOf(input)
+	if val.Kind() == reflect.Slice {
+		idx := int(i)
+		if idx < 0 {
+			if idx = val.Len() + idx; idx >= 0 {
+				return []any{val.Index(idx).Interface()}
+			}
+		} else if idx < val.Len() {
+			return []any{val.Index(idx).Interface()}
+		}
+	}
+
 	return make([]any, 0)
 }
 
@@ -241,7 +320,26 @@ func (i Index) SelectLocated(input, _ any, parent NormalizedPath) []*LocatedNode
 		} else if idx < len(val) {
 			return []*LocatedNode{newLocatedNode(append(parent, Index(idx)), val[idx])}
 		}
+		return make([]*LocatedNode, 0)
 	}
+
+	// Select from any kind of slice.
+	val := reflect.ValueOf(input)
+	if val.Kind() == reflect.Slice {
+		idx := int(i)
+		if idx < 0 {
+			if idx = val.Len() + idx; idx >= 0 {
+				return []*LocatedNode{newLocatedNode(
+					append(parent, Index(idx)), val.Index(idx).Interface(),
+				)}
+			}
+		} else if idx < val.Len() {
+			return []*LocatedNode{newLocatedNode(
+				append(parent, Index(idx)), val.Index(idx).Interface(),
+			)}
+		}
+	}
+
 	return make([]*LocatedNode, 0)
 }
 
@@ -375,13 +473,32 @@ func (s SliceSelector) Select(input, _ any) []any {
 				res = append(res, val[i])
 			}
 		}
-		return res
+		return slices.Clip(res)
 	}
+
+	// Select from any kind of slice.
+	val := reflect.ValueOf(input)
+	if val.Kind() == reflect.Slice {
+		lower, upper := s.Bounds(val.Len())
+		res := make([]any, 0, val.Len())
+		switch {
+		case s.step > 0:
+			for i := lower; i < upper; i += s.step {
+				res = append(res, val.Index(i).Interface())
+			}
+		case s.step < 0:
+			for i := upper; lower < i; i += s.step {
+				res = append(res, val.Index(i).Interface())
+			}
+		}
+		return slices.Clip(res)
+	}
+
 	return make([]any, 0)
 }
 
 // SelectLocated selects values from input for the indexes specified by s and
-// returns thm with their normalized paths as [LocatedNode] values. Returns
+// returns them with their normalized paths as [LocatedNode] values. Returns
 // an empty slice if input is not a slice. Indexes outside the bounds of input
 // will not be included in the return value. Defined by the [Selector]
 // interface.
@@ -399,7 +516,29 @@ func (s SliceSelector) SelectLocated(input, _ any, parent NormalizedPath) []*Loc
 				res = append(res, newLocatedNode(append(parent, Index(i)), val[i]))
 			}
 		}
-		return res
+		return slices.Clip(res)
+	}
+
+	// Select from any kind of slice.
+	val := reflect.ValueOf(input)
+	if val.Kind() == reflect.Slice {
+		lower, upper := s.Bounds(val.Len())
+		res := make([]*LocatedNode, 0, val.Len())
+		switch {
+		case s.step > 0:
+			for i := lower; i < upper; i += s.step {
+				res = append(res, newLocatedNode(
+					append(parent, Index(i)), val.Index(i).Interface(),
+				))
+			}
+		case s.step < 0:
+			for i := upper; lower < i; i += s.step {
+				res = append(res, newLocatedNode(
+					append(parent, Index(i)), val.Index(i).Interface(),
+				))
+			}
+		}
+		return slices.Clip(res)
 	}
 	return make([]*LocatedNode, 0)
 }
@@ -476,23 +615,53 @@ func (f *FilterSelector) writeTo(buf *strings.Builder) {
 // expressions may evaluate the current value (@), the root value ($), or any
 // path expression. Defined by the [Selector] interface.
 func (f *FilterSelector) Select(current, root any) []any {
-	ret := []any{}
 	switch current := current.(type) {
 	case []any:
+		ret := make([]any, 0, len(current))
 		for _, v := range current {
 			if f.Eval(v, root) {
 				ret = append(ret, v)
 			}
 		}
+		return slices.Clip(ret)
 	case map[string]any:
+		ret := make([]any, 0, len(current))
 		for _, v := range current {
 			if f.Eval(v, root) {
 				ret = append(ret, v)
 			}
+		}
+		return slices.Clip(ret)
+	default:
+		val := reflect.ValueOf(current)
+		switch val.Kind() {
+		case reflect.Slice:
+			// Select from any type of slice.
+			ret := make([]any, 0, val.Len())
+			for i := range val.Len() {
+				v := val.Index(i).Interface()
+				if f.Eval(v, root) {
+					ret = append(ret, v)
+				}
+			}
+			return slices.Clip(ret)
+		case reflect.Map:
+			// Select from any map[string]*.
+			if val.Type().Key().Kind() != reflect.String {
+				return make([]any, 0)
+			}
+			ret := make([]any, 0, val.Len())
+			for _, k := range val.MapKeys() {
+				v := val.MapIndex(k).Interface()
+				if f.Eval(v, root) {
+					ret = append(ret, v)
+				}
+			}
+			return slices.Clip(ret)
+		default:
+			return make([]any, 0)
 		}
 	}
-
-	return ret
 }
 
 // SelectLocated selects and returns [LocatedNode] values with values that f
@@ -500,23 +669,53 @@ func (f *FilterSelector) Select(current, root any) []any {
 // (@), the root value ($), or any path expression. Defined by the [Selector]
 // interface.
 func (f *FilterSelector) SelectLocated(current, root any, parent NormalizedPath) []*LocatedNode {
-	ret := []*LocatedNode{}
 	switch current := current.(type) {
 	case []any:
+		ret := make([]*LocatedNode, 0, len(current))
 		for i, v := range current {
 			if f.Eval(v, root) {
 				ret = append(ret, newLocatedNode(append(parent, Index(i)), v))
 			}
 		}
+		return slices.Clip(ret)
 	case map[string]any:
+		ret := make([]*LocatedNode, 0, len(current))
 		for k, v := range current {
 			if f.Eval(v, root) {
 				ret = append(ret, newLocatedNode(append(parent, Name(k)), v))
 			}
 		}
+		return slices.Clip(ret)
+	default:
+		val := reflect.ValueOf(current)
+		switch val.Kind() {
+		case reflect.Slice:
+			// Select from any type of slice.
+			ret := make([]*LocatedNode, 0, val.Len())
+			for i := range val.Len() {
+				v := val.Index(i).Interface()
+				if f.Eval(v, root) {
+					ret = append(ret, newLocatedNode(append(parent, Index(i)), v))
+				}
+			}
+			return slices.Clip(ret)
+		case reflect.Map:
+			// Select from any map[string]*.
+			if val.Type().Key().Kind() != reflect.String {
+				return make([]*LocatedNode, 0)
+			}
+			ret := make([]*LocatedNode, 0, val.Len())
+			for _, k := range val.MapKeys() {
+				v := val.MapIndex(k).Interface()
+				if f.Eval(v, root) {
+					ret = append(ret, newLocatedNode(append(parent, Name(k.String())), v))
+				}
+			}
+			return slices.Clip(ret)
+		default:
+			return make([]*LocatedNode, 0)
+		}
 	}
-
-	return ret
 }
 
 // Eval evaluates the f's [LogicalOr] expression against node and root. Uses

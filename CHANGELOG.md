@@ -9,12 +9,26 @@ All notable changes to this project will be documented in this file. It uses the
 
 ## [v0.11.1] — Unreleased
 
+### ⚡ Improvements
+
+*   Added support for selecting values from any type of slice or string-keyed
+    map, not just `[]any` or `map[string]any`. Internally it still prefers
+    `[]any` and `map[string]any`, to optimize for values decoded by
+    encoding/json, but it now falls back on reflection to detect any other
+    kind of slice or string-keyed map. Thanks to @ndsboy for the prompt (#26).
+*   Updated result set creation to allocate more slots for results when the
+    number of results are unknown, based on the number of selectors or items
+    to select from, to improve memory efficiency. Encouraged by the recent
+    [Go blog post] describing the advantages of this pattern.
+
 ### ⬆️ Dependency Updates
 
-*   Upgraded to `golangci-lint` v2.11.1 and made suggested slice allocation
-    optimization
+*   Upgraded to `golangci-lint` v2.11.4 and made suggested slice allocation
+    optimizations.
 
   [v0.11.1]: https://github.com/theory/jsonpath/compare/v0.11.0...v0.11.1
+  [Go blog post]: https://go.dev/blog/allocation-optimizations
+    "The Go Blog: Allocating on the Stack"
 
 ## [v0.11.0] — 2026-03-02
 

@@ -83,7 +83,7 @@ func NodesFrom(value PathValue) NodesType {
 	case *ValueType:
 		return NodesType([]any{v.any})
 	case nil:
-		return NodesType([]any{})
+		return NodesType(make([]any, 0))
 	case LogicalType:
 		panic("cannot convert LogicalType to NodesType")
 	default:

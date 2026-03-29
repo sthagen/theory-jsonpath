@@ -3,6 +3,7 @@ package registry
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"regexp/syntax"
 	"unicode/utf8"
@@ -32,8 +33,8 @@ func checkLengthArgs(args []spec.FuncExprArg) error {
 //   - if jv[0] is nil, the result is nil
 //   - If jv[0] is a string, the result is the number of Unicode scalar values
 //     in the string.
-//   - If jv[0] is a []any, the result is the number of elements in the slice.
-//   - If jv[0] is an map[string]any, the result is the number of members in
+//   - If jv[0] is a slice, the result is the number of elements in the slice.
+//   - If jv[0] is a string-keyed map, the result is the number of members in
 //     the map.
 //   - For any other value, the result is nil.
 func lengthFunc(jv []spec.PathValue) spec.PathValue {
@@ -50,7 +51,18 @@ func lengthFunc(jv []spec.PathValue) spec.PathValue {
 	case map[string]any:
 		return spec.Value(len(v))
 	default:
-		return nil
+		val := reflect.ValueOf(v)
+		switch val.Kind() {
+		case reflect.Slice:
+			return spec.Value(val.Len())
+		case reflect.Map:
+			if val.Type().Key().Kind() == reflect.String {
+				return spec.Value(val.Len())
+			}
+			return nil
+		default:
+			return nil
+		}
 	}
 }
 

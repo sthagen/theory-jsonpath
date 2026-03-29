@@ -3,6 +3,7 @@ package spec
 import (
 	"fmt"
 	"math"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -388,6 +389,34 @@ func TestNameSelect(t *testing.T) {
 			exp:  []any{},
 			loc:  []*LocatedNode{},
 		},
+		{
+			test: "got_name_string_obj",
+			sel:  Name("hi"),
+			src:  map[string]any{"hi": "xyz"},
+			exp:  []any{"xyz"},
+			loc:  []*LocatedNode{{Path: Normalized(Name("hi")), Node: "xyz"}},
+		},
+		{
+			test: "got_name_int_obj",
+			sel:  Name("hi"),
+			src:  map[string]int{"hi": 42},
+			exp:  []any{42},
+			loc:  []*LocatedNode{{Path: Normalized(Name("hi")), Node: 42}},
+		},
+		{
+			test: "got_name_slice_obj",
+			sel:  Name("hi"),
+			src:  map[string][]int{"hi": {42, 99}},
+			exp:  []any{[]int{42, 99}},
+			loc:  []*LocatedNode{{Path: Normalized(Name("hi")), Node: []int{42, 99}}},
+		},
+		{
+			test: "got_name_int_keyed_slice",
+			sel:  Name("hi"),
+			src:  map[int]any{42: "xyz"},
+			exp:  []any{},
+			loc:  []*LocatedNode{},
+		},
 	} {
 		t.Run(tc.test, func(t *testing.T) {
 			t.Parallel()
@@ -458,6 +487,27 @@ func TestIndexSelect(t *testing.T) {
 			exp:  []any{},
 			loc:  []*LocatedNode{},
 		},
+		{
+			test: "index_zero_string",
+			sel:  Index(0),
+			src:  []string{"hi", "x", "y"},
+			exp:  []any{"hi"},
+			loc:  []*LocatedNode{{Path: Normalized(Index(0)), Node: "hi"}},
+		},
+		{
+			test: "index_neg_one_string",
+			sel:  Index(-1),
+			src:  []string{"hi", "x", "y"},
+			exp:  []any{"y"},
+			loc:  []*LocatedNode{{Path: Normalized(Index(2)), Node: "y"}},
+		},
+		{
+			test: "neg_out_of_range_string",
+			sel:  Index(-4),
+			src:  []string{"x", "y", "hi"},
+			exp:  []any{},
+			loc:  []*LocatedNode{},
+		},
 	} {
 		t.Run(tc.test, func(t *testing.T) {
 			t.Parallel()
@@ -488,6 +538,21 @@ func TestWildcardSelect(t *testing.T) {
 			},
 		},
 		{
+			test: "int_object",
+			src:  map[string]int{"x": 42, "y": 33},
+			exp:  []any{42, 33},
+			loc: []*LocatedNode{
+				{Path: Normalized(Name("x")), Node: 42},
+				{Path: Normalized(Name("y")), Node: 33},
+			},
+		},
+		{
+			test: "int_keyed_object",
+			src:  map[int]string{42: "x", 33: "y"},
+			exp:  []any{},
+			loc:  []*LocatedNode{},
+		},
+		{
 			test: "array",
 			src:  []any{true, 42, map[string]any{"x": 6}},
 			exp:  []any{true, 42, map[string]any{"x": 6}},
@@ -498,7 +563,17 @@ func TestWildcardSelect(t *testing.T) {
 			},
 		},
 		{
-			test: "something_else",
+			test: "int_array",
+			src:  []int{1, 42, 5},
+			exp:  []any{1, 42, 5},
+			loc: []*LocatedNode{
+				{Path: Normalized(Index(0)), Node: 1},
+				{Path: Normalized(Index(1)), Node: 42},
+				{Path: Normalized(Index(2)), Node: 5},
+			},
+		},
+		{
+			test: "integer",
 			src:  42,
 			exp:  []any{},
 			loc:  []*LocatedNode{},
@@ -508,7 +583,7 @@ func TestWildcardSelect(t *testing.T) {
 			t.Parallel()
 			a := assert.New(t)
 
-			if _, ok := tc.src.(map[string]any); ok {
+			if reflect.ValueOf(tc.src).Kind() == reflect.Map {
 				a.ElementsMatch(tc.exp, Wildcard().Select(tc.src, nil))
 				a.ElementsMatch(tc.loc, Wildcard().SelectLocated(tc.src, nil, Normalized()))
 			} else {
@@ -655,6 +730,49 @@ func TestSliceSelect(t *testing.T) {
 			exp:  []any{},
 			loc:  []*LocatedNode{},
 		},
+		{
+			test: "src_string_slice",
+			sel:  Slice(0, 2),
+			src:  []string{"hi", "bye", "x"},
+			exp:  []any{"hi", "bye"},
+			loc: []*LocatedNode{
+				{Path: Normalized(Index(0)), Node: "hi"},
+				{Path: Normalized(Index(1)), Node: "bye"},
+			},
+		},
+		{
+			test: "src_int_slice",
+			sel:  Slice(),
+			src:  []int{42, 1024},
+			exp:  []any{42, 1024},
+			loc: []*LocatedNode{
+				{Path: Normalized(Index(0)), Node: 42},
+				{Path: Normalized(Index(1)), Node: 1024},
+			},
+		},
+		{
+			test: "src_object_slice",
+			sel:  Slice(),
+			src:  []map[string]any{{"x": 1}, {"y": true}},
+			exp:  []any{map[string]any{"x": 1}, map[string]any{"y": true}},
+			loc: []*LocatedNode{
+				{Path: Normalized(Index(0)), Node: map[string]any{"x": 1}},
+				{Path: Normalized(Index(1)), Node: map[string]any{"y": true}},
+			},
+		},
+		{
+			test: "negative_step_strings",
+			sel:  Slice(nil, nil, -1),
+			src:  []string{"x", "y", "z", "a", "b"},
+			exp:  []any{"b", "a", "z", "y", "x"},
+			loc: []*LocatedNode{
+				{Path: Normalized(Index(4)), Node: "b"},
+				{Path: Normalized(Index(3)), Node: "a"},
+				{Path: Normalized(Index(2)), Node: "z"},
+				{Path: Normalized(Index(1)), Node: "y"},
+				{Path: Normalized(Index(0)), Node: "x"},
+			},
+		},
 	} {
 		t.Run(tc.test, func(t *testing.T) {
 			t.Parallel()
@@ -720,6 +838,29 @@ func TestFilterSelector(t *testing.T) {
 			rand: true,
 		},
 		{
+			test:    "string_object_root",
+			filter:  Filter(And(Existence(Query(true, Child(Name("y")))))),
+			root:    map[string]string{"x": "how", "y": "hi"},
+			current: map[string]string{"a": "grit", "b": "kick"},
+			exp:     []any{"grit", "kick"},
+			loc: []*LocatedNode{
+				{Path: Normalized(Name("a")), Node: "grit"},
+				{Path: Normalized(Name("b")), Node: "kick"},
+			},
+			str:  `?$["y"]`,
+			rand: true,
+		},
+		{
+			test:    "int_keyed_object_root",
+			filter:  Filter(And(Existence(Query(true, Child(Name("y")))))),
+			root:    map[int]string{1: "how", 2: "hi"},
+			current: map[int]string{3: "grit", 4: "kick"},
+			exp:     []any{},
+			loc:     []*LocatedNode{},
+			str:     `?$["y"]`,
+			rand:    true,
+		},
+		{
 			test:    "object_root_false",
 			filter:  Filter(And(Existence(Query(true, Child(Name("z")))))),
 			root:    map[string]any{"x": 42, "y": "hi"},
@@ -736,6 +877,16 @@ func TestFilterSelector(t *testing.T) {
 			exp:     []any{[]any{42}},
 			loc: []*LocatedNode{
 				{Path: Normalized(Index(0)), Node: []any{42}},
+			},
+			str: `?@[0]`,
+		},
+		{
+			test:    "int_array_current",
+			filter:  Filter(And(Existence(Query(false, Child(Index(0)))))),
+			current: [][]int{{42}},
+			exp:     []any{[]int{42}},
+			loc: []*LocatedNode{
+				{Path: Normalized(Index(0)), Node: []int{42}},
 			},
 			str: `?@[0]`,
 		},

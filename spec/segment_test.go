@@ -658,6 +658,80 @@ func TestDescendantSegmentSelect(t *testing.T) {
 			},
 			rand: true,
 		},
+		{
+			test: "slice_ints",
+			seg:  Descendant(Slice(1, 3)),
+			src:  []int{1, 3, 4, 5},
+			exp:  []any{3, 4},
+			loc: []*LocatedNode{
+				{Path: Normalized(Index(1)), Node: 3},
+				{Path: Normalized(Index(2)), Node: 4},
+			},
+		},
+		{
+			test: "slice_slice_ints",
+			seg:  Descendant(Slice(1, 3)),
+			src:  [][]int{{1, 2, 4}, {5, 6, 7}, {8, 9}},
+			exp:  []any{[]int{5, 6, 7}, []int{8, 9}, 2, 4, 6, 7, 9},
+			loc: []*LocatedNode{
+				{Path: Normalized(Index(1)), Node: []int{5, 6, 7}},
+				{Path: Normalized(Index(2)), Node: []int{8, 9}},
+				{Path: Normalized(Index(0), Index(1)), Node: 2},
+				{Path: Normalized(Index(0), Index(2)), Node: 4},
+				{Path: Normalized(Index(1), Index(1)), Node: 6},
+				{Path: Normalized(Index(1), Index(2)), Node: 7},
+				{Path: Normalized(Index(2), Index(1)), Node: 9},
+			},
+		},
+		{
+			test: "name_string_map",
+			seg:  Descendant(Name("hi")),
+			src:  map[string]string{"hi": "you", "go": "xyz"},
+			exp:  []any{"you"},
+			loc: []*LocatedNode{
+				{Path: Normalized(Name("hi")), Node: "you"},
+			},
+			rand: true,
+		},
+		{
+			test: "name_string_obj_map",
+			seg:  Descendant(Name("hi")),
+			src: map[string]map[string]string{
+				"hi": {"x": "y", "hi": "you"},
+				"go": {"hi": "how"},
+			},
+			exp: []any{map[string]string{"x": "y", "hi": "you"}, "you", "how"},
+			loc: []*LocatedNode{
+				{Path: Normalized(Name("hi")), Node: map[string]string{"x": "y", "hi": "you"}},
+				{Path: Normalized(Name("hi"), Name("hi")), Node: "you"},
+				{Path: Normalized(Name("go"), Name("hi")), Node: "how"},
+			},
+			rand: true,
+		},
+		{
+			test: "name_int_map",
+			seg:  Descendant(Name("hi")),
+			src: map[string]map[int]string{
+				"hi": {1: "y", 2: "you"},
+				"go": {42: "how"},
+			},
+			exp: []any{map[int]string{1: "y", 2: "you"}},
+			loc: []*LocatedNode{
+				{Path: Normalized(Name("hi")), Node: map[int]string{1: "y", 2: "you"}},
+			},
+			rand: true,
+		},
+		{
+			test: "name_int_obj_map",
+			seg:  Descendant(Name("hi")),
+			src: map[int]map[string]int{
+				42: {"hi": 99, "x": 4},
+				23: {"hi": 34, "x": 4},
+			},
+			exp:  []any{},
+			loc:  []*LocatedNode{},
+			rand: true,
+		},
 	} {
 		t.Run(tc.test, func(t *testing.T) {
 			t.Parallel()

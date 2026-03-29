@@ -98,6 +98,31 @@ func TestLengthFunc(t *testing.T) {
 			vals: []spec.PathValue{spec.LogicalFalse},
 			err:  "cannot convert LogicalType to ValueType",
 		},
+		{
+			test: "int_array",
+			vals: []spec.PathValue{spec.Value([]int{1, 2, 3, 4, 5})},
+			exp:  5,
+		},
+		{
+			test: "string_array",
+			vals: []spec.PathValue{spec.Value([]string{"x", "y", "z"})},
+			exp:  3,
+		},
+		{
+			test: "int_object",
+			vals: []spec.PathValue{spec.Value(map[string]int{"x": 1, "y": 0, "z": 2})},
+			exp:  3,
+		},
+		{
+			test: "string_object",
+			vals: []spec.PathValue{spec.Value(map[string]string{"x": "x", "y": "y"})},
+			exp:  2,
+		},
+		{
+			test: "int_keyed_object",
+			vals: []spec.PathValue{spec.Value(map[int]string{1: "x", 2: "c"})},
+			exp:  -1,
+		},
 	} {
 		t.Run(tc.test, func(t *testing.T) {
 			t.Parallel()
