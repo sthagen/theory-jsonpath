@@ -4,6 +4,7 @@ RFC 9535 JSONPath in Go
 [![⚖️ MIT]][mit] [![📚 Docs]][docs] [![🗃️ Report Card]][card] [![🛠️ Build Status]][ci] [![📊 Coverage]][cov]
 
 The jsonpath package provides [RFC 9535 JSONPath] functionality in Go.
+It operates on any type of slice or string-keyed map.
 
 ## Learn More
 

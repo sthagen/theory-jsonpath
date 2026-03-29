@@ -1,4 +1,5 @@
 // Package jsonpath implements RFC 9535 JSONPath query expressions.
+// It operates on any type of slice or string-keyed map.
 package jsonpath
 
 import (
@@ -160,7 +161,7 @@ func (list NodeList) All() iter.Seq[any] {
 }
 
 // LocatedNodeList is a list of nodes selected by a JSONPath query, along with
-// their [NormalizedPath] locations. Returned by [Path.SelectLocated].
+// their [spec.NormalizedPath] locations. Returned by [Path.SelectLocated].
 type LocatedNodeList []*spec.LocatedNode
 
 // All returns an iterator over all the nodes in list.
@@ -188,7 +189,8 @@ func (list LocatedNodeList) Nodes() iter.Seq[any] {
 	}
 }
 
-// Paths returns an iterator over all the [NormalizedPath] values in list.
+// Paths returns an iterator over all the [spec.NormalizedPath] values in
+// list.
 func (list LocatedNodeList) Paths() iter.Seq[spec.NormalizedPath] {
 	return func(yield func(spec.NormalizedPath) bool) {
 		for _, v := range list {
@@ -199,10 +201,10 @@ func (list LocatedNodeList) Paths() iter.Seq[spec.NormalizedPath] {
 	}
 }
 
-// Deduplicate deduplicates the nodes in list based on their [NormalizedPath]
-// values, modifying the contents of list. It returns the modified list, which
-// may have a shorter length, and zeroes the elements between the new length
-// and the original length.
+// Deduplicate deduplicates the nodes in list based on their
+// [spec.NormalizedPath] values, modifying the contents of list. It returns
+// the modified list, which may have a shorter length, and zeroes the elements
+// between the new length and the original length.
 func (list LocatedNodeList) Deduplicate() LocatedNodeList {
 	if len(list) <= 1 {
 		return list
@@ -221,7 +223,7 @@ func (list LocatedNodeList) Deduplicate() LocatedNodeList {
 	return slices.Clip(uniq)
 }
 
-// Sort sorts list by the [NormalizedPath] of each node.
+// Sort sorts list by the [spec.NormalizedPath] of each node.
 func (list LocatedNodeList) Sort() {
 	slices.SortFunc(list, func(a, b *spec.LocatedNode) int {
 		return a.Path.Compare(b.Path)

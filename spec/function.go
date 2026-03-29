@@ -46,8 +46,8 @@ type PathValue interface {
 // NodesType defines a node list (a list of JSON values) for a function
 // expression parameters or results, as defined by [RFC 9535 Section 2.4.1].
 // It can also be used in filter expressions. The underlying types should be
-// string, integer, float, [json.Number], nil, true, false, []any, or
-// map[string]any. Interfaces implemented:
+// string, integer, float, [json.Number], nil, true, false, slice, or
+// string-keyed map. Interfaces implemented:
 //
 // - [PathValue]
 // - [fmt.Stringer]
@@ -57,7 +57,7 @@ type NodesType []any
 
 // Nodes creates a NodesType that contains val, all of which should be the Go
 // equivalent of the JSON data types: string, integer, float, [json.Number],
-// nil, true, false, []any, or map[string]any.
+// nil, true, false, slice, or string-keyed map.
 func Nodes(val ...any) NodesType {
 	return NodesType(val)
 }
@@ -137,8 +137,8 @@ func (LogicalType) FuncType() FuncType { return FuncLogical }
 // LogicalFrom converts value to a [LogicalType] and panics if it cannot. Use
 // in [github.com/theory/jsonpath/registry.Registry.Register] [Evaluator]
 // functions. Avoid the panic by returning an error from the accompanying
-// [Validator] function when [FuncExprArg.ConvertsToLogical] returns false for
-// the [FuncExprArg] that returns value.
+// [Validator] function when [FuncExprArg.ConvertsTo] returns false for the
+// [FuncExprArg] that returns value.
 //
 // Converts each implementation of [PathValue] as follows:
 //   - [LogicalType]: returns value
@@ -170,7 +170,7 @@ func (lt LogicalType) writeTo(buf *strings.Builder) {
 // ValueType encapsulates a JSON value for a function expression parameter or
 // result, as defined by [RFC 9535 Section 2.4.1]. It can also be used as in
 // filter expression. The underlying value should be a string, integer,
-// [json.Number], float, nil, true, false, []any, or map[string]any. A nil
+// [json.Number], float, nil, true, false, slice, or string-keyed map. A nil
 // ValueType pointer indicates no value. Interfaces implemented:
 //
 //   - [PathValue]
@@ -184,7 +184,7 @@ type ValueType struct {
 
 // Value returns a new [ValueType] for val, which must be the Go equivalent of
 // a JSON data type: string, integer, float, [json.Number], nil, true, false,
-// []any, or map[string]any.
+// slice, or string-keyed map.
 func Value(val any) *ValueType {
 	return &ValueType{val}
 }
@@ -201,8 +201,8 @@ func (*ValueType) FuncType() FuncType { return FuncValue }
 // ValueFrom converts value to a [ValueType] and panics if it cannot. Use in
 // [github.com/theory/jsonpath/registry.Registry.Register] [Evaluator]
 // functions. Avoid the panic by returning an error from the accompanying
-// [Validator] function when [FuncExprArg.ConvertsToValue] returns false for
-// the [FuncExprArg] that returns value.
+// [Validator] function when [FuncExprArg.ConvertsTo] returns false for the
+// [FuncExprArg] that returns value.
 //
 // Converts each implementation of [PathValue] as follows:
 //   - [ValueType]: returns value

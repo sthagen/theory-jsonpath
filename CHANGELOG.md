@@ -26,6 +26,10 @@ All notable changes to this project will be documented in this file. It uses the
 *   Upgraded to `golangci-lint` v2.11.4 and made suggested slice allocation
     optimizations.
 
+### 📚 Documentation
+
+*   Fixed some broken Go Doc links.
+
   [v0.11.1]: https://github.com/theory/jsonpath/compare/v0.11.0...v0.11.1
   [Go blog post]: https://go.dev/blog/allocation-optimizations
     "The Go Blog: Allocating on the Stack"

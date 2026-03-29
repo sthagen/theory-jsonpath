@@ -46,7 +46,7 @@ func New() *Registry {
 	}
 }
 
-// ErrRegister errors are returned by [Register].
+// ErrRegister errors are returned by [Registry.Register].
 var ErrRegister = errors.New("register")
 
 // Register registers a function extension. The parameters are:
